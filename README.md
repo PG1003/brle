@@ -75,7 +75,7 @@ pg::brle::decode< const pg::brle::brle8 *,
 assert( data.size() == 4u );
 ```
 
-## ```brle``` utility
+## brle utility
 
 There is an [implementation](https://github.com/PG1003/brle/blob/main/util/brle.cpp) for a commandline utility that uses this `brle` library.
 The utility can be used to test the efficiency of the compression for your use case or create a binary blobs that are going to be included in your application or firmware.
@@ -132,13 +132,13 @@ This library has two functions that live in the `pg::brle` namespace; `encode` a
 Like the algorithmes in STL library these functions use iterators to read and write values.
 Iterators give you the freedom to use raw pointers, iterators from standard containers or your own fancy iterator.
 
-#### ```pg::brle::rle8```
+#### `pg::brle::rle8`
 
 `pg::brle::rle8` is the data type containing the encoded RLE data.
 
 More about the format of this type is described in the [block format](#Block-format) paragraph.
 
-#### ```output_iterator pg::brle::encode( input_iterator in, input_iterator last, output_iterator out )'''
+#### `output_iterator pg::brle::encode( input_iterator in, input_iterator last, output_iterator out )'
 
 Reads data from `in` until the iterator is equal to last. The encoded RLE values are written to `out`.
 The function returns an output_iterator that points to one past the last written RLE value.
@@ -150,7 +150,7 @@ So be sure the `output_iterator` type.
 `Out` must accommodate at least 114.3% the size of the input data.
 This space is required in case the encoder only emits [literal](#Literal) blocks.
 
-#### ```output_iterator pg::brle::decode( input_iterator in, input_iterator last, output_iterator out )'''
+#### `output_iterator pg::brle::decode( input_iterator in, input_iterator last, output_iterator out )'
 
 Reads RLE values from `in` until the iterator is equal to last. The decoded data are written to `out`.
 The function returns an output_iterator that points to one past the last written decoded value.
@@ -177,9 +177,9 @@ A block does not depend on other blocks.
 
 #### Literal
 
-| 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |
-|---|---|---|---|---|---|---|---|
-| 0 | x | x | x | x | x | x | x |
+|  bit  | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |
+|-------|---|---|---|---|---|---|---|
+| value | 0 | x | x | x | x | x | x | x |
 
 The literal blocks are marked by a `0` for most significant bit.
 The remaining 7 bits packs the uncompressed literal data.
@@ -191,9 +191,9 @@ This results into more output data which is `8 / 7 = 114.3%` the size of the ori
 
 ### Zeros
 
-| 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |
-|---|---|---|---|---|---|---|---|
-| 1 | 0 | n | n | n | n | n | n |
+|  bit  | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |
+|-------|---|---|---|---|---|---|---|---|
+| value | 1 | 0 | n | n | n | n | n | n |
 
 A zeros block is marked by the value `10` for the two most significant bits.
 The remaing bits is zeros' block value.
@@ -211,9 +211,9 @@ This bit is stuffed by the encoder to improve the compression ratio, especially 
 
 #### Ones
 
-| 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |
-|---|---|---|---|---|---|---|---|
-| 1 | 1 | n | n | n | n | n | n |
+|  bit  | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |
+|-------|---|---|---|---|---|---|---|---|
+| value | 1 | 1 | n | n | n | n | n | n |
 
 A ones block is marked by the value `11` for the two most significant bits.
 The remaing bits is ones' block value.
