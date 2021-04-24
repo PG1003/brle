@@ -1,13 +1,15 @@
 # A C++ library to compress or expand binary data using Run-Length Encoding
 
-This library implements a variant of the Run-Length Encoding compression method that is optimized for binary data.
+This library implements a variant of the Run-Length Encoding compression method that is optimized for long sequences of ones or zeros.
 
-The advantage of the RLE over other compression methods is that RLE can compresses data in a single pass and does not require any buffering of the input or output data.
-These properties can make a good fit for applications that are tight on memory usage or require low latencies.
+The advantage of the RLE over other compression methods is that RLE can compress data in a single pass and does not require any buffering of the input or output data.
+These properties can make a RLE good fit for applications that are tight on memory usage or require low latencies.
 However due to simplicity of RLE the compression may not be as good as achieved by other compression methods.
 
 ## Features
 
+* Optimized for long sequences of ones or zeros.
+* Robust; the decoder does not depend on previously decoded data.
 * Compress and expand data in a single pass.
 * No buffering of input data or output data.
 
@@ -27,7 +29,7 @@ You may need to enable C++20 for your compiler to it compile.
 
 * Optimazations for specific compilers and targets.__
   The source code of this library to compress and expand data is simple.
-  Adapting and optimizing these functions to fit your application should be easy.
+  So adapting and optimizing these functions to fit your application should be easy.
 * Defining a container format.__
   This library focuses only on converting data to and from a RLE.
   You have to take care for the information such as the original data size, length of the RLE stream, checksums, etc.
@@ -132,31 +134,31 @@ This library has two functions that live in the `pg::brle` namespace; `encode` a
 Like the algorithmes in STL library these functions use iterators to read and write values.
 Iterators give you the freedom to use raw pointers, iterators from standard containers or your own fancy iterator.
 
-#### `pg::brle::rle8`
+#### `pg::brle::brle8`
 
-`pg::brle::rle8` is the data type containing the encoded RLE data.
+`pg::brle::brle8` is the data type containing the encoded RLE data.
 
 More about the format of this type is described in the [block format](#Block-format) paragraph.
 
-#### `output_iterator pg::brle::encode( input_iterator in, input_iterator last, output_iterator out )'
+#### `output_iterator pg::brle::encode( input_iterator in, input_iterator last, output_iterator out )`
 
 Reads data from `in` until the iterator is equal to last. The encoded RLE values are written to `out`.
 The function returns an output_iterator that points to one past the last written RLE value.
 
 The data type returned by the `input_iterator` can be of any size but must be an unsigned type, e.g. `unsigned char`, `uint32_t`, etc.
 The `output_iterator` must have a underlaying data of the `pg::brle::brle8` type but this is not enforced by the library.
-So be sure the `output_iterator` type.
+So be sure about the `output_iterator` type.
 
 `Out` must accommodate at least 114.3% the size of the input data.
-This space is required in case the encoder only emits [literal](#Literal) blocks.
+This space is required in case the function emits only [literal](#Literal) blocks.
 
-#### `output_iterator pg::brle::decode( input_iterator in, input_iterator last, output_iterator out )'
+#### `output_iterator pg::brle::decode( input_iterator in, input_iterator last, output_iterator out )`
 
 Reads RLE values from `in` until the iterator is equal to last. The decoded data are written to `out`.
 The function returns an output_iterator that points to one past the last written decoded value.
 
 The `input_iterator` must return values of the `pg::brle::brle8` type.
-The data written to the `output_iterator` can be of any size but must be an unsigned type.
+The underlaying value type of the `output_iterator` can be of any unsigned types.
 
 Be sure that `out` can buffer all the data that is encoded by the input RLE values.
 
@@ -178,7 +180,7 @@ A block does not depend on other blocks.
 #### Literal
 
 |  bit  | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |
-|-------|---|---|---|---|---|---|---|
+|-------|---|---|---|---|---|---|---|---|
 | value | 0 | x | x | x | x | x | x | x |
 
 The literal blocks are marked by a `0` for most significant bit.
@@ -205,7 +207,6 @@ The length of the zeros sequence that is represented by this block is `8 + 3 = 1
 The maximum number of zeros that can be represented is `8 + (2 ^ 6 ) - 1 = 71`.
 This means that the maximum compression ratio that can be achieved is `8 / 71 = 11.25%`.
 
-Multiple zeros blocks can be chained to represent a sequence length of more than 71 zeros.
 When a block represents _less_ then 71 zeros then sequence of zeros is always followed by an `1`.
 This bit is stuffed by the encoder to improve the compression ratio, especially for sequences of zeros containing a sporadic single `1`.
 
