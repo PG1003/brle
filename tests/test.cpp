@@ -1,4 +1,5 @@
 #include <brle.h>
+#include <vector>
 #include <cstring>
 #include <iostream>
 #include <iterator>

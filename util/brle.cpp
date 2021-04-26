@@ -104,6 +104,11 @@ struct binary_input_file_iterator
         return file == other.file && std::ftell( file ) == std::ftell( other.file );
     }
 
+    bool operator!=( const binary_input_file_iterator & other ) const
+    {
+        return !operator==( other );
+    }
+
     T &                          operator*()        { return value; }
     binary_input_file_iterator * operator->() const { return &value; }
     binary_input_file_iterator & operator++()       { next(); return *this; }
@@ -167,6 +172,11 @@ struct binary_output_file_iterator
         }
 
         return file == other.file && std::ftell( file ) == std::ftell( other.file );
+    }
+
+    bool operator!=( const binary_output_file_iterator & other ) const
+    {
+        return !operator==( other );
     }
 
     binary_output_file_iterator & operator*()       { return *this; }

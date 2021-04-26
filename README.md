@@ -1,6 +1,6 @@
 # A C++ library to compress or expand binary data using Run-Length Encoding
 
-This library implements a variant of the Run-Length Encoding compression method that is optimized for long sequences of ones or zeros.
+This library implements a variant of the Run-Length Encoding compression method that is optimized for sequences of ones or zeros.
 
 The advantage of the RLE over other compression methods is that RLE can compress data in a single pass and does not require any buffering of the input or output data.
 These properties can make a RLE good fit for applications that are tight on memory usage or require low latencies.
@@ -8,16 +8,17 @@ However due to simplicity of RLE the compression may not be as good as achieved 
 
 ## Features
 
-* Optimized for long sequences of ones or zeros.
-* Robust; the decoder does not depend on previously decoded data.
+* Optimized for sequences of ones or zeros.
+* Robust
+  * The encoder and decoder does not depend on previously processed data.
+  * Fixed size RLE data [blocks](#Block-format).
 * Compress and expand data in a single pass.
 * No buffering of input data or output data.
 
 ## Requirements
 
-A C++ compiler with a standard library that has the bit operation libaray `<bit>` is required.
-This library is part of the C++20 standard and comes whith MSVC 19.28 (VS 2019 16.8), GCC libstd++ 9 and Clang libc++ 9.  
-You may need to enable C++20 for your compiler to it compile.
+A C++14 compiler when using the library or when building the test program.
+The [brle utility](#brle-utility) requires at least a C++17 compliant compiler.
 
 ## Goals
 
@@ -36,7 +37,7 @@ You may need to enable C++20 for your compiler to it compile.
 
 ## Examples
 
-Besides the following examples you can take a peek in the [test program](https://github.com/PG1003/brle/blob/main/tests/test.cpp) or the [brle utility](https://github.com/PG1003/brle/blob/main/util/brle.cpp) about the usage of the `brle` library.
+Besides the following examples you can take a peek in the sources of the[test program](https://github.com/PG1003/brle/blob/main/tests/test.cpp) and the [brle utility](https://github.com/PG1003/brle/blob/main/util/brle.cpp) about the usage of the `brle` library.
 
 ### Encode
 
@@ -79,10 +80,10 @@ assert( data.size() == 4u );
 
 ## brle utility
 
-There is an [implementation](https://github.com/PG1003/brle/blob/main/util/brle.cpp) for a commandline utility that uses this `brle` library.
-The utility can be used to test the efficiency of the compression for your use case or create a binary blobs that are going to be included in your application or firmware.
+The brle utility is an [implementation](https://github.com/PG1003/brle/blob/main/util/brle.cpp) for a commandline program that uses this `brle` library.
+The utility can be used to test the efficiency of the compression for your use case or to create binary blobs that are going to be included in your application or firmware.
 
-You can build the utility with the provided makefile by running the following command;
+You can build the utility with the provided makefile by running the following make command;
 
 ```sh
 make brle

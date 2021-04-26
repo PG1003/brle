@@ -29,7 +29,7 @@ CXX := g++
 LD := g++
 
 # C++ flags
-CXXFLAGS := -std=c++20
+CXXFLAGS := -std=c++17
 # C/C++ flags
 CPPFLAGS := -Wall -Wextra -Wpedantic -O3
 # Extra include directories

@@ -25,10 +25,13 @@
 #include <cstdint>
 #include <cassert>
 #include <algorithm>
-#include <bit>
 #include <limits>
 #include <iterator>
 #include <type_traits>
+
+#if defined( __cpp_lib_bitops )
+#include <bit>
+#endif
 
 namespace pg
 {
@@ -85,6 +88,123 @@ static constexpr brle8 make_ones( int count )
     return static_cast< brle8 >( mode::ones | ( count - min_brle_len ) );
 }
 
+#if defined( __cpp_lib_bitops )
+
+//
+// Use perfect forwarding to create aliases for std::countr_zero and std::countr_one.
+//
+
+template< typename T >
+auto countr_zero( T && val ) -> decltype( auto )
+{
+    return std::countr_zero( std::forward< T >( val ) );
+}
+
+template< typename T >
+auto countr_one( T && val ) -> decltype( auto )
+{
+    return std::countr_one( std::forward< T >( val ) );
+}
+
+#else
+
+//
+// Surrogates for the std::countr_zero std::countr_one functions when NOT compiling with C++20.
+//
+// Inspired by:
+//   https://graphics.stanford.edu/~seander/bithacks.html#ZerosOnRightMultLookup
+//   http://www.hakank.org/comb/debruijn_arb.cgi
+//
+
+template< typename T >
+constexpr int countr_zero( const T val )
+{
+    static_assert( std::is_unsigned< T >::value, "expected an unsigned value" );
+
+    if( val )
+    {
+        const uint64_t de_bruin_64  = 0x003B1234F32FD42B7;
+        const int      lookup[ 64 ] = { 0,  1, 50,  2, 12, 51, 19,  3,
+                                       16, 13, 52, 36, 32, 20,  4, 26,
+                                       48, 17, 14, 24, 46, 53, 55, 37,
+                                        9, 33, 21, 57, 60,  5, 27, 39,
+                                       63, 49, 11, 18, 15, 35, 31, 25,
+                                       47, 23, 45, 54,  8, 56, 59, 38,
+                                       62, 10, 34, 30, 22, 44,  7, 58,
+                                       61, 29, 43,  6, 28, 42, 41, 40 };
+
+        const uint64_t hash  = ( val & -val ) * de_bruin_64;
+        const uint64_t index = hash >> 58;
+
+        return lookup[ index ];
+    }
+
+    return 64;
+}
+
+template<>
+constexpr int countr_zero< uint8_t >( const uint8_t val )
+{
+    if( val )
+    {
+        const uint8_t de_bruin_8  = 0x1D;
+        const int     lookup[ 8 ] = { 0, 1, 6, 2, 7, 5, 4, 3 };
+
+        const uint8_t hash  = ( val & -val ) * de_bruin_8;
+        const uint8_t index = hash >> 5;
+
+        return lookup[ index ];
+    }
+
+    return 8;
+}
+
+template<>
+constexpr int countr_zero< uint16_t >( const uint16_t val )
+{
+    if( val )
+    {
+        const uint32_t de_bruin_16  = 0x0D2F;
+        const int      lookup[ 16 ] = { 0, 1, 8,  2,  6, 9,  3, 11,
+                                       15, 7, 5, 10, 14, 4, 13, 12 };
+
+        const uint16_t hash  = ( val & -val ) * de_bruin_16;
+        const uint16_t index = hash >> 12;
+
+        return lookup[ index ];
+    }
+
+    return 16;
+}
+
+template<>
+constexpr int countr_zero< uint32_t >( const uint32_t val )
+{
+    if( val )
+    {
+        const uint32_t de_bruin_32  = 0x077CB531;
+        const int      lookup[ 32 ] = { 0,  1, 28,  2, 29, 14, 24, 3,
+                                       30, 22, 20, 15, 25, 17, 4,  8,
+                                       31, 27, 13, 23, 21, 19, 16, 7,
+                                       26, 12, 18,  6, 11,  5, 10, 9 };
+
+        const uint32_t hash  = ( val & -val ) * de_bruin_32;
+        const uint32_t index = hash >> 27;
+
+        return lookup[ index ];
+    }
+
+    return 32;
+}
+
+template< typename T >
+constexpr int countr_one( T val )
+{
+    return countr_zero( static_cast< T >( ~val ) );
+}
+
+#endif
+
 }
 
 
@@ -93,7 +213,8 @@ auto encode( InputIt input, InputIt last, OutputIt output ) -> OutputIt
 {
     using InputValueT = typename std::iterator_traits< InputIt >::value_type;
     
-    static_assert( std::is_unsigned< InputValueT >::value );
+    static_assert( std::is_unsigned< InputValueT >::value,
+                   "expected an input iterator that returns an unsigned value when dereferenced" );
     
     constexpr int data_bits = std::numeric_limits< InputValueT >::digits;
 
@@ -113,8 +234,8 @@ auto encode( InputIt input, InputIt last, OutputIt output ) -> OutputIt
         }
 
         int count        = 0;
-        const auto zeros = std::min( std::countr_zero( bits ), bit_count );
-        const auto ones  = std::min( std::countr_one( bits ), bit_count );
+        const auto zeros = std::min( detail::countr_zero( bits ), bit_count );
+        const auto ones  = std::min( detail::countr_one( bits ), bit_count );
 
         switch( state )
         {
@@ -213,8 +334,10 @@ auto encode( InputIt input, InputIt last, OutputIt output ) -> OutputIt
 template< typename InputIt, typename OutputIt, typename OutputValueT = typename std::iterator_traits< OutputIt >::value_type >
 auto decode( InputIt input, InputIt last, OutputIt output ) -> OutputIt
 {
-    static_assert( std::is_same< typename std::iterator_traits< InputIt >::value_type, brle8 >::value );
-    static_assert( std::is_unsigned< OutputValueT >::value );
+    static_assert( std::is_same< typename std::iterator_traits< InputIt >::value_type, brle8 >::value,
+                   "expected an input iterator that returns brle8 like type when dereferenced" );
+    static_assert( std::is_unsigned< OutputValueT >::value,
+                   "expected an unsigned value type as output" );
     
     constexpr int          data_bits = std::numeric_limits< OutputValueT >::digits;
     constexpr OutputValueT data_mask = std::numeric_limits< OutputValueT >::max();
