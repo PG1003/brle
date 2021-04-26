@@ -11,7 +11,7 @@ However due to simplicity of RLE the compression may not be as good as achieved 
 * Optimized for sequences of ones or zeros.
 * Robust
   * The encoder and decoder does not depend on previously processed data.
-  * Fixed size RLE data [blocks](#Block-format).
+  * Fixed size RLE [data blocks](#Block-format).
 * Compress and expand data in a single pass.
 * No buffering of input data or output data.
 
@@ -28,16 +28,16 @@ The [brle utility](#brle-utility) requires at least a C++17 compliant compiler.
 
 ## Non-goals
 
-* Optimazations for specific compilers and targets.__
+* Optimazations for specific compilers and targets.  
   The source code of this library to compress and expand data is simple.
   So adapting and optimizing these functions to fit your application should be easy.
-* Defining a container format.__
+* Defining a container format.  
   This library focuses only on converting data to and from a RLE.
   You have to take care for the information such as the original data size, length of the RLE stream, checksums, etc.
 
 ## Examples
 
-Besides the following examples you can take a peek in the sources of the[test program](https://github.com/PG1003/brle/blob/main/tests/test.cpp) and the [brle utility](https://github.com/PG1003/brle/blob/main/util/brle.cpp) about the usage of the `brle` library.
+Besides the following examples you can take a peek in the sources of the [test program](https://github.com/PG1003/brle/blob/main/tests/test.cpp) and the [brle utility](https://github.com/PG1003/brle/blob/main/util/brle.cpp) about the usage of the `brle` library.
 
 ### Encode
 
