@@ -133,7 +133,7 @@ constexpr int countr_zero( const T val )
                                        62, 10, 34, 30, 22, 44,  7, 58,
                                        61, 29, 43,  6, 28, 42, 41, 40 };
 
-        const uint64_t hash  = ( val & -val ) * de_bruin_64;
+        const uint64_t hash  = ( val & ( ~val + 1u ) ) * de_bruin_64;
         const uint64_t index = hash >> 58;
 
         return lookup[ index ];
@@ -150,7 +150,7 @@ constexpr int countr_zero< uint8_t >( const uint8_t val )
         const uint8_t de_bruin_8  = 0x1D;
         const int     lookup[ 8 ] = { 0, 1, 6, 2, 7, 5, 4, 3 };
 
-        const uint8_t hash  = ( val & -val ) * de_bruin_8;
+        const uint8_t hash  = ( val & ( ~val + 1u ) ) * de_bruin_8;
         const uint8_t index = hash >> 5;
 
         return lookup[ index ];
@@ -168,7 +168,7 @@ constexpr int countr_zero< uint16_t >( const uint16_t val )
         const int      lookup[ 16 ] = { 0, 1, 8,  2,  6, 9,  3, 11,
                                        15, 7, 5, 10, 14, 4, 13, 12 };
 
-        const uint16_t hash  = ( val & -val ) * de_bruin_16;
+        const uint16_t hash  = ( val & ( ~val + 1u ) ) * de_bruin_16;
         const uint16_t index = hash >> 12;
 
         return lookup[ index ];
@@ -188,7 +188,7 @@ constexpr int countr_zero< uint32_t >( const uint32_t val )
                                        31, 27, 13, 23, 21, 19, 16, 7,
                                        26, 12, 18,  6, 11,  5, 10, 9 };
 
-        const uint32_t hash  = ( val & -val ) * de_bruin_32;
+        const uint32_t hash  = ( val & ( ~val + 1u ) ) * de_bruin_32;
         const uint32_t index = hash >> 27;
 
         return lookup[ index ];
