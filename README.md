@@ -80,7 +80,7 @@ assert( data.size() == 4u );
 
 ## brle utility
 
-The brle utility is an [implementation](https://github.com/PG1003/brle/blob/main/util/brle.cpp) for a commandline program that uses this `brle` library.
+The brle utility is an [implementation](https://github.com/PG1003/brle/blob/main/util/brle.cpp) for a commandline program that use this `brle` library.
 The utility can be used to test the efficiency of the compression for your use case or to create binary blobs that are going to be included in your application or firmware.
 
 You can build the utility with the provided makefile by running the following make command;
@@ -132,7 +132,7 @@ cat file1 | blre -e - file2
 ### API
 
 This library has two functions that live in the `pg::brle` namespace; `encode` and `decode`.  
-Like the algorithmes in STL library these functions use iterators to read and write values.
+Like the algorithms in STL library these functions use iterators to read and write values.
 Iterators give you the freedom to use raw pointers, iterators from standard containers or your own fancy iterator.
 
 #### `pg::brle::brle8`
@@ -164,7 +164,7 @@ The underlaying value type of the `output_iterator` can be of any unsigned types
 Be sure that `out` can buffer all the data that is encoded by the input RLE values.
 
 There is a special case for output iterators such as returned by `std::back_inserter`.
-The terator trais for these kind of iterators do not expose the value type of the underlaying data structure.
+The iterator traits for these kind of iterators do not expose the value type of the underlaying data structure.
 In this case you need to specify all the template parameters as shown in the [Decoding using output iterators](#Decoding-using-output-iterators) example. 
 
 #### Endianess
@@ -174,7 +174,7 @@ Big endian is only supported when the input and output data are byte-sized types
 
 ### Block format
 
-There are 3 block types; litheral, zeros and ones.
+There are 3 block types; literal, zeros and ones.
 These block types are all one byte (8 bits).
 A block does not depend on other blocks.
 
