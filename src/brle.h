@@ -219,8 +219,8 @@ auto encode( InputIt input, InputIt last, OutputIt output ) -> OutputIt
     constexpr int data_bits = std::numeric_limits< InputValueT >::digits;
 
     InputValueT input_bufferd = 0;
-    InputValueT bits          = 0; //*input++;
-    int         bit_count     = 0; //data_bits;
+    InputValueT bits          = 0;
+    int         bit_count     = 0;
     int         rlen          = 0;
 
     enum encode_state { init, zeros, ones } state = init;
