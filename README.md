@@ -30,7 +30,7 @@ The [brle utility](#brle-utility) requires at least a C++17 compliant compiler.
 
 * Optimazations for specific compilers and targets.  
   The source code of this library to compress and expand data is simple.
-  So adapting and optimizing these functions to fit your application should be easy.
+  Adapting and optimizing these functions to fit your application should be easy.
 * Defining a container format.  
   This library focuses only on converting data to and from a RLE.
   You have to take care for the information such as the original data size, length of the RLE stream, checksums, etc.
@@ -92,12 +92,13 @@ make brle
 ### Usage
 
 ``` sh
-brle [-e|-d] [-?] input output
+brle [-e|-d] [-?] [input] [output]
 ```
 
 The input and output can be a path to a file or a `-`.  
 When a `-` is provided as input parameter then `brle` will read its data from the standard input.
 A `-` for the output lets `brle` write to the standard output.
+When `input` or `output` is omitted then the standard input and/or standard output is selected.
 
 |Option | Description|
 |-------|------------|
@@ -124,7 +125,7 @@ blre -d file1 file2
 Use the output from another command as input, in this example 'cat'.
 
 ```sh
-cat file1 | blre -e - file2
+cat file1 | blre -e - file
 ```
 
 ## Documentation
@@ -192,7 +193,7 @@ Using literal blocks for these cases reduces the overhead by avoiding many block
 However there is still an inevitable overhead added for literal data.
 This results into more output data which is `8 / 7 = 114.3%` the size of the original data.
 
-### Zeros
+#### Zeros
 
 |  bit  | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |
 |-------|---|---|---|---|---|---|---|---|
