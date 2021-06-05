@@ -1,3 +1,25 @@
+// MIT License
+//
+// Copyright (c) 2021 PG1003
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+
 #include <brle.h>
 #include <iterator>
 #include <string>
@@ -14,6 +36,9 @@ static void brle_error( const char * const format, ... )
 
     std::vfprintf( stderr, format, args );
     std::fputc( '\n', stderr );
+
+    va_end( args );
+
     std::exit( 1 );
 }
 
@@ -196,7 +221,7 @@ static void print_help()
         "A tool to compress or expand binary data using Run-Length Encoding.\n"
         "\n"
         "SYNOPSIS\n"
-        "    brle [-e|-d] [-?] input output\n"
+        "    brle [-e|-d] [-?] [input] [output]\n"
         "\n"
         "DESCRIPTION\n"
         "    blre reduces the size of its input by using a variant of the\n"
@@ -238,55 +263,29 @@ static void print_help()
         "\n"
         "    Use the output from another command as input, in this example 'cat'.\n"
         "\n"
-        "        cat file1 | blre -e - file2\n"
+        "        cat file1 | blre -e - file\n"
         "\n"
         "    Expand from from input file to standard output\n"
         "\n"
-        "        brle -d file -\n";
+        "        brle -d file\n";
 
     std::puts( help );
 }
 
-static void encode( std::string_view in, std::string_view out )
+static void encode( std::FILE * const in, std::FILE * const out )
 {
-    std::FILE * const in_file  = in == "-" ? stdin : std::fopen( std::string( in ).c_str(), "rb" );
-    std::FILE * const out_file = out == "-" ? stdin : std::fopen( std::string( out ).c_str(), "wb" );
-
-    if( in_file == nullptr )
-    {
-        brle_errno( "Input" );
-    }
-
-    if( out_file == nullptr )
-    {
-        brle_errno( "Output" );
-    }
-
-    auto in_begin  = binary_input_file_iterator< uint8_t >( in_file );
+    auto in_begin  = binary_input_file_iterator< uint8_t >( in );
     auto in_end    = binary_input_file_iterator< uint8_t >();
-    auto out_begin = binary_output_file_iterator< pg::brle::brle8 >( out_file );
+    auto out_begin = binary_output_file_iterator< pg::brle::brle8 >( out );
 
     pg::brle::encode( in_begin, in_end, out_begin );
 }
 
-static void decode( std::string_view in, std::string_view out )
+static void decode( std::FILE * const in, std::FILE * const out )
 {
-    std::FILE * const in_file  = in == "-" ? stdin : std::fopen( std::string( in ).c_str(), "rb" );
-    std::FILE * const out_file = out == "-" ? stdout : std::fopen( std::string( out ).c_str(), "wb" );
-
-    if( in_file == nullptr )
-    {
-        brle_errno( "Input" );
-    }
-
-    if( out_file == nullptr )
-    {
-        brle_errno( "Output" );
-    }
-
-    auto in_begin  = binary_input_file_iterator< pg::brle::brle8 >( in_file );
+    auto in_begin  = binary_input_file_iterator< pg::brle::brle8 >( in );
     auto in_end    = binary_input_file_iterator< pg::brle::brle8 >();
-    auto out_begin = binary_output_file_iterator< uint8_t >( out_file );
+    auto out_begin = binary_output_file_iterator< uint8_t >( out );
 
     pg::brle::decode< binary_input_file_iterator< pg::brle::brle8 >,
                       binary_output_file_iterator< uint8_t >,
@@ -322,7 +321,7 @@ int main( const int argc, const char * argv[] )
                 break;
 
             default:
-                brle_error( "Unrecognized option '%c'. Use the '-?' option to get information about the usage.", opt );
+                brle_error( "Unrecognized option '%c'. Use the '-?' option to read about the usage of this program.", opt );
             }
         }
 
@@ -330,23 +329,26 @@ int main( const int argc, const char * argv[] )
         output = opts.read_argument();
     }
 
-    if( input.empty() )
+    std::FILE * const in_file  = ( input == "-" || input.empty() ) ? stdin : std::fopen( std::string( input ).c_str(), "rb" );
+    std::FILE * const out_file = ( output == "-" || output.empty() ) ? stdout : std::fopen( std::string( output ).c_str(), "wb" );
+
+    if( in_file == nullptr )
     {
-        brle_error( "No input provided. Use the '-?' option to get information about the usage." );
+        brle_errno( "Input" );
     }
 
-    if( output.empty() )
+    if( out_file == nullptr )
     {
-        brle_error( "No output provided. Use the '-?' option to get information about the usage." );
+        brle_errno( "Output" );
     }
     
     if( direction == transformation::encode_ )
     {
-        encode( input, output );
+        encode( in_file, out_file );
     }
     else
     {
-        decode( input, output );
+        decode( in_file, out_file );
     }
 
     return 0;
