@@ -32,7 +32,7 @@ The [brle utility](#brle-utility) requires at least a C++17 compliant compiler.
   The source code of this library to compress and expand data is simple.
   Adapting and optimizing these functions to fit your application should be easy.
 * Defining a container format.  
-  This library focuses only on converting data to and from a RLE.
+  This library focuses only on converting data to and from RLE.
   You have to take care for the information such as the original data size, length of the RLE stream, checksums, etc.
 
 ## Examples
@@ -42,7 +42,7 @@ Besides the following examples you can take a peek in the sources of the [test p
 ### Encode
 
 ```c++
-const uint8_t   data[ 8 ] = { 0xFF, 0xFF, 0x0F, 0x00, 0x00, 0x00, 0x00, 0x00, 0xAA };
+const uint8_t   data[ 8 ] = { 0xFF, 0xFF, 0x0F, 0x00, 0x00, 0x00, 0x00, 0xAA };
 pg::brle::brle8 rle[ 10 ] = { 0 };
 
 auto end = pg::brle::encode( std::begin( data ), std::end( data ), rle );
@@ -63,7 +63,7 @@ assert( std::distance( data, end ) == 8 );
 
 ### Decoding using output iterators
 
-The iterator traits used in the implementation of `pg::brle::decode` do not provide information about the underlaying data structure for output iterators such as returned by the `std::back_inserter` function.
+The iterator traits used in the implementation of `pg::brle::decode` does not provide information about the underlaying data structure for output iterators such as returned by the `std::back_inserter` function.
 In this rare case you need explicit provide all the template parameters.
 
 ```c++
@@ -125,7 +125,7 @@ blre -d file1 file2
 Use the output from another command as input, in this example 'cat'.
 
 ```sh
-cat file1 | blre -e - file
+cat file1 | blre -e - file2
 ```
 
 ## Documentation
@@ -145,7 +145,7 @@ More about the format of this type is described in the [block format](#Block-for
 #### `output_iterator pg::brle::encode( input_iterator in, input_iterator last, output_iterator out )`
 
 Reads data from `in` until the iterator is equal to last. The encoded RLE values are written to `out`.
-The function returns an output_iterator that points to one past the last written RLE value.
+The function returns an `output_iterator` that points to one past the last written RLE value.
 
 The data type returned by the `input_iterator` can be of any size but must be an unsigned type, e.g. `unsigned char`, `uint32_t`, etc.
 The `output_iterator` must have a underlaying data of the `pg::brle::brle8` type but this is not enforced by the library.
@@ -203,14 +203,14 @@ A zeros block is marked by the value `10` for the two most significant bits.
 The remaing bits is zeros' block value.
 By adding 8 to that value you get the length of the zeros sequence represented by this block.
 
-E.g. a zeros block with a binary representation of `1000 0011` has a decimal value of 3.
-The length of the zeros sequence that is represented by this block is `8 + 3 = 11`.
+E.g. a zeros block with a binary representation of `1000 1001` has a decimal value of 9.
+The length of the zeros sequence that is represented by this block is `8 + 9 = 17`.
 
 The maximum number of zeros that can be represented is `8 + (2 ^ 6 ) - 1 = 71`.
 This means that the maximum compression ratio that can be achieved is `8 / 71 = 11.25%`.
 
 When a block represents _less_ then 71 zeros then sequence of zeros is always followed by an `1`.
-This bit is stuffed by the encoder to improve the compression ratio, especially for sequences of zeros containing a sporadic single `1`.
+This bit is stuffed by the encoder to improve the compression ratio, especially for sequences of zeros are followed by a single `1`.
 
 #### Ones
 
