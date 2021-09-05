@@ -330,13 +330,12 @@ int main( const int argc, const char * argv[] )
     }
 
     std::FILE * const in_file  = ( input == "-" || input.empty() ) ? stdin : std::fopen( std::string( input ).c_str(), "rb" );
-    std::FILE * const out_file = ( output == "-" || output.empty() ) ? stdout : std::fopen( std::string( output ).c_str(), "wb" );
-
     if( in_file == nullptr )
     {
         brle_errno( "Input" );
     }
 
+    std::FILE * const out_file = ( output == "-" || output.empty() ) ? stdout : std::fopen( std::string( output ).c_str(), "wb" );
     if( out_file == nullptr )
     {
         brle_errno( "Output" );
