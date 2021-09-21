@@ -133,7 +133,7 @@ cat file1 | blre -e - file2
 ### API
 
 This library has two functions that live in the `pg::brle` namespace; `encode` and `decode`.  
-Like the algorithms in STL library these functions use iterators to read and write values.
+Like the algorithms in the STL these functions use iterators to read and write values.
 Iterators give you the freedom to use raw pointers, iterators from standard containers or your own fancy iterator.
 
 #### `pg::brle::brle8`
@@ -156,13 +156,13 @@ This space is required in case the function emits only [literal](#Literal) block
 
 #### `output_iterator pg::brle::decode( input_iterator in, input_iterator last, output_iterator out )`
 
-Reads RLE values from `in` until the iterator is equal to last. The decoded data are written to `out`.
+Reads RLE values from `in` until the iterator is equal to last. The decoded data is written to `out`.
 The function returns an output_iterator that points to one past the last written decoded value.
 
 The `input_iterator` must return values of the `pg::brle::brle8` type.
 The underlaying value type of the `output_iterator` can be of any unsigned types.
 
-Be sure that `out` can buffer all the data that is encoded by the input RLE values.
+Be sure that `out` can buffer all the data that is encoded in the input RLE values.
 
 There is a special case for output iterators such as returned by `std::back_inserter`.
 The iterator traits for these kind of iterators do not expose the value type of the underlaying data structure.
@@ -170,7 +170,7 @@ In this case you need to specify all the template parameters as shown in the [De
 
 #### Endianess
 
-The functions are written with an little endian architecture in mind.  
+The functions are written with a little endian architecture in mind.  
 Big endian is only supported when the input and output data are byte-sized types (for which the byte ordering is irrelevant).
 
 ### Block format
@@ -206,7 +206,7 @@ By adding 8 to that value you get the length of the zeros sequence represented b
 E.g. a zeros block with a binary representation of `1000 1001` has a decimal value of 9.
 The length of the zeros sequence that is represented by this block is `8 + 9 = 17`.
 
-The maximum number of zeros that can be represented is `8 + (2 ^ 6 ) - 1 = 71`.
+The maximum number of zeros that can be represented is `8 + ( 2 ^ 6 ) - 1 = 71`.
 This means that the maximum compression ratio that can be achieved is `8 / 71 = 11.25%`.
 
 When a block represents _less_ then 71 zeros then sequence of zeros is always followed by an `1`.
