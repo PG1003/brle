@@ -95,13 +95,13 @@ static constexpr brle8 make_ones( int count )
 //
 
 template< typename T >
-auto countr_zero( T && val ) -> decltype( auto )
+constexpr auto countr_zero( T && val ) -> decltype( auto )
 {
     return std::countr_zero( std::forward< T >( val ) );
 }
 
 template< typename T >
-auto countr_one( T && val ) -> decltype( auto )
+constexpr auto countr_one( T && val ) -> decltype( auto )
 {
     return std::countr_one( std::forward< T >( val ) );
 }
@@ -209,7 +209,7 @@ constexpr int countr_one( T val )
 
 
 template< typename InputIt, typename OutputIt >
-auto encode( InputIt input, InputIt last, OutputIt output ) -> OutputIt
+constexpr auto encode( InputIt input, InputIt last, OutputIt output ) -> OutputIt
 {
     using InputValueT = typename std::iterator_traits< InputIt >::value_type;
     
@@ -332,7 +332,7 @@ auto encode( InputIt input, InputIt last, OutputIt output ) -> OutputIt
 }
 
 template< typename InputIt, typename OutputIt, typename OutputValueT = typename std::iterator_traits< OutputIt >::value_type >
-auto decode( InputIt input, InputIt last, OutputIt output ) -> OutputIt
+constexpr auto decode( InputIt input, InputIt last, OutputIt output ) -> OutputIt
 {
     static_assert( std::is_same< typename std::iterator_traits< InputIt >::value_type, brle8 >::value,
                    "expected an input iterator that returns brle8 like type when dereferenced" );

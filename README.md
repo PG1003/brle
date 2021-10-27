@@ -14,6 +14,7 @@ However due to simplicity of RLE the compression may not be as good as achieved 
   * Fixed size RLE [data blocks](#Block-format).
 * Compress and expand data in a single pass.
 * No buffering of input data or output data.
+* Entirely `constexpr`.
 
 ## Requirements
 

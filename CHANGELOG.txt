@@ -1,0 +1,8 @@
+# current
+
+- Applied the constexpr specifier to all functions.
+  This enables compile time RLE data generation.
+
+# v1.0.0
+
+- Initial release
