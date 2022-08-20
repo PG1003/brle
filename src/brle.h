@@ -50,7 +50,6 @@ namespace mode
 enum : brle8
 {
     literal  = 0x00,
-    literal2 = 0x40,
     zeros    = 0x80,
     ones     = 0xC0
 };
@@ -212,10 +211,10 @@ template< typename InputIt, typename OutputIt >
 constexpr auto encode( InputIt input, InputIt last, OutputIt output ) -> OutputIt
 {
     using InputValueT = typename std::iterator_traits< InputIt >::value_type;
-    
+
     static_assert( std::is_unsigned< InputValueT >::value,
                    "expected an input iterator that returns an unsigned value when dereferenced" );
-    
+
     constexpr int data_bits = std::numeric_limits< InputValueT >::digits;
 
     InputValueT input_bufferd = 0;
@@ -338,7 +337,7 @@ constexpr auto decode( InputIt input, InputIt last, OutputIt output ) -> OutputI
                    "expected an input iterator that returns brle8 like type when dereferenced" );
     static_assert( std::is_unsigned< OutputValueT >::value,
                    "expected an unsigned value type as output" );
-    
+
     constexpr int          data_bits = std::numeric_limits< OutputValueT >::digits;
     constexpr OutputValueT data_mask = std::numeric_limits< OutputValueT >::max();
 
