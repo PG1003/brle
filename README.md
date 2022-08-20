@@ -10,7 +10,7 @@ However due to simplicity of RLE the compression may not be as good as achieved 
 
 * Optimized for sequences of ones or zeros.
 * Robust
-  * The encoder and decoder does not depend on previously processed data.
+  * The encoder and decoder do not depend on previously processed data.
   * Fixed size RLE [data blocks](#Block-format).
 * Compress and expand data in a single pass.
 * No buffering of input data or output data.
@@ -30,8 +30,8 @@ The [brle utility](#brle-utility) requires at least a C++17 compliant compiler.
 ## Non-goals
 
 * Optimazations for specific compilers and targets.  
-  The source code of this library to compress and expand data is simple.
-  Adapting and optimizing these functions to fit your application should be easy.
+  The source code for the functions that to compress and expand data is simple.
+  Adapting and optimizing these to fit your application should be easy.
 * Defining a container format.  
   This library focuses only on converting data to and from RLE.
   You have to take care for the information such as the original data size, length of the RLE stream, checksums, etc.
@@ -81,7 +81,7 @@ assert( data.size() == 4u );
 
 ## brle utility
 
-The brle utility is an [implementation](https://github.com/PG1003/brle/blob/main/util/brle.cpp) for a commandline program that use this `brle` library.
+The brle utility is an [implementation](https://github.com/PG1003/brle/blob/main/util/brle.cpp) for a commandline program that use this library.
 The utility can be used to test the efficiency of the compression for your use case or to create binary blobs that are going to be included in your application or firmware.
 
 You can build the utility with the provided makefile by running the following make command;
@@ -93,10 +93,10 @@ make brle
 ### Usage
 
 ``` sh
-brle [-e|-d] [-?] [input] [output]
+brle [-e|-d] [-h] input output
 ```
 
-The input and output can be a path to a file or a `-`.  
+The input and output must be a path to a file or a `-`.  
 When a `-` is provided as input parameter then `brle` will read its data from the standard input.
 A `-` for the output lets `brle` write to the standard output.
 When `input` or `output` is omitted then the standard input and/or standard output is selected.
@@ -105,10 +105,10 @@ When `input` or `output` is omitted then the standard input and/or standard outp
 |-------|------------|
 | -e | Encode input |
 | -d | Decode input |
-| -? | Shows help |
+| -h | Shows help |
 
 The `e` option is default when no `e` or `d` option is provided.
-When both of `e` or `d` are provided then the last option from the commanline is used.
+When both `e` and `d` options are provided then the last option from the commanline is used.
 
 Compress an input file and write the result to an output file.
 
@@ -153,7 +153,7 @@ The `output_iterator` must have a underlaying data of the `pg::brle::brle8` type
 So be sure about the `output_iterator` type.
 
 `Out` must accommodate at least 114.3% the size of the input data.
-This space is required in case the function emits only [literal](#Literal) blocks.
+This space is required in case the function encodes only [literal](#Literal) blocks.
 
 #### `output_iterator pg::brle::decode( input_iterator in, input_iterator last, output_iterator out )`
 
@@ -186,13 +186,13 @@ A block does not depend on other blocks.
 |-------|---|---|---|---|---|---|---|---|
 | value | 0 | x | x | x | x | x | x | x |
 
-The literal blocks are marked by a `0` for most significant bit.
+Literal blocks are marked by a `0` for most significant bit.
 The remaining 7 bits packs the uncompressed literal data.
 
 A literal block is used when are less than 8 successive bits of the same value (zero or one).
 Using literal blocks for these cases reduces the overhead by avoiding many blocks for very short sequences of ones and zeros.
 However there is still an inevitable overhead added for literal data.
-This results into more output data which is `8 / 7 = 114.3%` the size of the original data.
+This results into output data which is `8 / 7 = 114.3%` the size of the original data.
 
 #### Zeros
 
