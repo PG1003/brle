@@ -221,7 +221,7 @@ static void print_help()
         "A tool to compress or expand binary data using Run-Length Encoding.\n"
         "\n"
         "SYNOPSIS\n"
-        "    brle [-e|-d] [-?] [input] [output]\n"
+        "    brle -[ed] [-h] input output\n"
         "\n"
         "DESCRIPTION\n"
         "    blre reduces the size of its input by using a variant of the\n"
@@ -241,7 +241,7 @@ static void print_help()
         "OPTIONS\n"
         "    -e  Encode input.\n"
         "    -d  Decode input.\n"
-        "    -?  Shows this help.\n"
+        "    -h  Shows this help.\n"
         "\n"
         "USAGE\n"
         "    Compress an input file and write the result to an output file.\n"
@@ -267,7 +267,7 @@ static void print_help()
         "\n"
         "    Expand from from input file to standard output\n"
         "\n"
-        "        brle -d file\n";
+        "        brle -d file -\n";
 
     std::puts( help );
 }
@@ -301,7 +301,7 @@ int main( const int argc, const char * argv[] )
     transformation   direction = transformation::encode_;
     std::string_view input;
     std::string_view output;
-    
+
     {
         options opts( argc, argv );
         for( char opt = opts.read_option() ; opt != '\0' ; opt = opts.read_option() )
@@ -316,12 +316,12 @@ int main( const int argc, const char * argv[] )
                 direction = transformation::decode_;
                 break;
 
-            case '?':
+            case 'h':
                 print_help();
                 break;
 
             default:
-                brle_error( "Unrecognized option '%c'. Use the '-?' option to read about the usage of this program.", opt );
+                brle_error( "Unrecognized option '%c'. Use the '-h' option to read about the usage of this program.", opt );
             }
         }
 
@@ -329,13 +329,23 @@ int main( const int argc, const char * argv[] )
         output = opts.read_argument();
     }
 
-    std::FILE * const in_file  = ( input == "-" || input.empty() ) ? stdin : std::fopen( std::string( input ).c_str(), "rb" );
+    if( input.empty() )
+    {
+        brle_error( "No input input parameter prived. Use the '-h' option to read about the usage of this program." );
+    }
+
+    if( output.empty() )
+    {
+        brle_error( "No output input parameter prived. Use the '-h' option to read about the usage of this program." );
+    }
+
+    std::FILE * const in_file  = input == "-" ? stdin : std::fopen( std::string( input ).c_str(), "rb" );
     if( in_file == nullptr )
     {
         brle_errno( "Input" );
     }
 
-    std::FILE * const out_file = ( output == "-" || output.empty() ) ? stdout : std::fopen( std::string( output ).c_str(), "wb" );
+    std::FILE * const out_file = output == "-" ? stdout : std::fopen( std::string( output ).c_str(), "wb" );
     if( out_file == nullptr )
     {
         brle_errno( "Output" );
