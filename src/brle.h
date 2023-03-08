@@ -29,8 +29,12 @@
 #include <iterator>
 #include <type_traits>
 
+#if _­_­cplusplus > 201703L
+ #include <version>
+#endif
+
 #if defined( __cpp_lib_bitops )
-#include <bit>
+ #include <bit>
 #endif
 
 namespace pg
@@ -217,18 +221,18 @@ constexpr auto encode( InputIt input, InputIt last, OutputIt output ) -> OutputI
 
     constexpr int data_bits = std::numeric_limits< InputValueT >::digits;
 
-    InputValueT input_bufferd = 0;
-    InputValueT bits          = 0;
-    int         bit_count     = 0;
-    int         rlen          = 0;
+    InputValueT input_buffered = 0;
+    InputValueT bits           = 0;
+    int         bit_count      = 0;
+    int         rlen           = 0;
 
     enum encode_state { init, zeros, ones } state = init;
     while( bit_count > 0 || input != last )
     {
         if( bit_count < data_bits && input != last )
         {
-            input_bufferd = *input++;
-            bits          = bits | ( input_bufferd << bit_count );
+            input_buffered = *input++;
+            bits          = bits | ( input_buffered << bit_count );
             bit_count     = bit_count + data_bits;
         }
 
@@ -310,7 +314,7 @@ constexpr auto encode( InputIt input, InputIt last, OutputIt output ) -> OutputI
             const int input_shift = bit_count - data_bits;
 
             bits = bits >> count;
-            bits = bits | ( input_shift >= 0 ? input_bufferd << input_shift : input_bufferd >> -input_shift );
+            bits = bits | ( input_shift >= 0 ? input_buffered << input_shift : input_buffered >> -input_shift );
         }
     }
 
