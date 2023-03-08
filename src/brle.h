@@ -29,7 +29,7 @@
 #include <iterator>
 #include <type_traits>
 
-#if _­_­cplusplus > 201703L
+#if __cplusplus > 201703L
  #include <version>
 #endif
 
