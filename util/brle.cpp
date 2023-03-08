@@ -24,28 +24,30 @@
 #include <iterator>
 #include <string>
 #include <string_view>
-#include <cstdlib>
+#include <cassert>
 #include <cstdio>
 #include <cstdarg>
+#include <cerrno>
 
 
-static void brle_error( const char * const format, ... )
+static void brle_argument_error( const char * const format, ... )
 {
     va_list args;
     va_start( args, format );
 
     std::vfprintf( stderr, format, args );
     std::fputc( '\n', stderr );
+    std::puts( "Use the '-h' option to read about the usage of this program." );
 
     va_end( args );
 
-    std::exit( 1 );
+    std::exit( EINVAL );
 }
 
 static void brle_errno( const char * const prefix )
 {
     std::perror( prefix );
-    std::exit( 1 );
+    std::exit( errno );
 }
 
 
@@ -134,7 +136,8 @@ struct binary_input_file_iterator
         return !operator==( other );
     }
 
-    T &                          operator*()        { return value; }
+    reference                    operator*()        { return value; }
+    const reference              operator*() const  { return value; }
     binary_input_file_iterator * operator->() const { return &value; }
     binary_input_file_iterator & operator++()       { next(); return *this; }
     binary_input_file_iterator   operator++( int )  { auto it = *this; next(); return it; }
@@ -157,7 +160,7 @@ private:
             return;
         }
 
-        if( const int err = std::ferror( file ) )
+        if( std::ferror( file ) )
         {
             brle_errno( "Input" );
         }
@@ -177,7 +180,7 @@ struct binary_output_file_iterator
         : file( file )
     {}
 
-    T operator=( T value )
+    binary_output_file_iterator& operator=( T value )
     {
         assert( file );
 
@@ -186,7 +189,7 @@ struct binary_output_file_iterator
 
         }
 
-        return value;
+        return *this;
     }
 
     bool operator==( const binary_output_file_iterator & other ) const
@@ -321,7 +324,7 @@ int main( const int argc, const char * argv[] )
                 break;
 
             default:
-                brle_error( "Unrecognized option '%c'. Use the '-h' option to read about the usage of this program.", opt );
+                brle_argument_error( "Unrecognized option '%c'.", opt );
             }
         }
 
@@ -331,12 +334,12 @@ int main( const int argc, const char * argv[] )
 
     if( input.empty() )
     {
-        brle_error( "No input input parameter prived. Use the '-h' option to read about the usage of this program." );
+        brle_argument_error( "No input input parameter provided." );
     }
 
     if( output.empty() )
     {
-        brle_error( "No output input parameter prived. Use the '-h' option to read about the usage of this program." );
+        brle_argument_error( "No output input parameter provided." );
     }
 
     std::FILE * const in_file  = input == "-" ? stdin : std::fopen( std::string( input ).c_str(), "rb" );
