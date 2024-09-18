@@ -74,7 +74,8 @@ static constexpr int count( const brle8 rle )
     return ( rle & 0x3F ) + min_brle_len;
 }
 
-static constexpr brle8 make_literal( size_t buffer )
+template< typename T >
+static constexpr brle8 make_literal( T buffer )
 {
     return static_cast< brle8 >( buffer & 0x7F );
 }
@@ -120,11 +121,11 @@ constexpr auto countr_one( T && val ) -> decltype( auto )
 //
 
 template< typename T >
-constexpr int countr_zero( const T val )
+constexpr int countr_zero( const T value )
 {
     static_assert( std::is_unsigned< T >::value, "expected an unsigned value" );
 
-    if( val )
+    if( value )
     {
         const uint64_t de_bruin_64  = 0x003B1234F32FD42B7;
         const int      lookup[ 64 ] = { 0,  1, 50,  2, 12, 51, 19,  3,
@@ -136,7 +137,7 @@ constexpr int countr_zero( const T val )
                                        62, 10, 34, 30, 22, 44,  7, 58,
                                        61, 29, 43,  6, 28, 42, 41, 40 };
 
-        const uint64_t hash  = ( val & ( ~val + 1u ) ) * de_bruin_64;
+        const uint64_t hash  = ( value & ( ~value + 1u ) ) * de_bruin_64;
         const uint64_t index = hash >> 58;
 
         return lookup[ index ];
@@ -146,14 +147,14 @@ constexpr int countr_zero( const T val )
 }
 
 template<>
-constexpr int countr_zero< uint8_t >( const uint8_t val )
+constexpr int countr_zero< uint8_t >( const uint8_t value )
 {
-    if( val )
+    if( value )
     {
         const uint8_t de_bruin_8  = 0x1D;
         const int     lookup[ 8 ] = { 0, 1, 6, 2, 7, 5, 4, 3 };
 
-        const uint8_t hash  = ( val & ( ~val + 1u ) ) * de_bruin_8;
+        const uint8_t hash  = ( value & ( ~value + 1u ) ) * de_bruin_8;
         const uint8_t index = hash >> 5;
 
         return lookup[ index ];
@@ -163,15 +164,15 @@ constexpr int countr_zero< uint8_t >( const uint8_t val )
 }
 
 template<>
-constexpr int countr_zero< uint16_t >( const uint16_t val )
+constexpr int countr_zero< uint16_t >( const uint16_t value )
 {
-    if( val )
+    if( value )
     {
         const uint32_t de_bruin_16  = 0x0D2F;
         const int      lookup[ 16 ] = { 0, 1, 8,  2,  6, 9,  3, 11,
                                        15, 7, 5, 10, 14, 4, 13, 12 };
 
-        const uint16_t hash  = ( val & ( ~val + 1u ) ) * de_bruin_16;
+        const uint16_t hash  = ( value & ( ~value + 1u ) ) * de_bruin_16;
         const uint16_t index = hash >> 12;
 
         return lookup[ index ];
@@ -181,9 +182,9 @@ constexpr int countr_zero< uint16_t >( const uint16_t val )
 }
 
 template<>
-constexpr int countr_zero< uint32_t >( const uint32_t val )
+constexpr int countr_zero< uint32_t >( const uint32_t value )
 {
-    if( val )
+    if( value )
     {
         const uint32_t de_bruin_32  = 0x077CB531;
         const int      lookup[ 32 ] = { 0,  1, 28,  2, 29, 14, 24, 3,
@@ -191,7 +192,7 @@ constexpr int countr_zero< uint32_t >( const uint32_t val )
                                        31, 27, 13, 23, 21, 19, 16, 7,
                                        26, 12, 18,  6, 11,  5, 10, 9 };
 
-        const uint32_t hash  = ( val & ( ~val + 1u ) ) * de_bruin_32;
+        const uint32_t hash  = ( value & ( ~value + 1u ) ) * de_bruin_32;
         const uint32_t index = hash >> 27;
 
         return lookup[ index ];
@@ -201,137 +202,229 @@ constexpr int countr_zero< uint32_t >( const uint32_t val )
 }
 
 template< typename T >
-constexpr int countr_one( T val )
+constexpr int countr_one( T value )
 {
-    return countr_zero( static_cast< T >( ~val ) );
+    return countr_zero( static_cast< T >( ~value ) );
 }
 
 #endif
 
 }
 
-
-template< typename InputIt, typename OutputIt >
-constexpr auto encode( InputIt input, InputIt last, OutputIt output ) -> OutputIt
+template< typename DataT, typename OutputIt >
+class encoder
 {
-    using InputValueT = typename std::iterator_traits< InputIt >::value_type;
+    static_assert( std::is_unsigned< DataT >::value, "expected an unsigned input type" );
 
-    static_assert( std::is_unsigned< InputValueT >::value,
-                   "expected an input iterator that returns an unsigned value when dereferenced" );
-
-    constexpr int data_bits = std::numeric_limits< InputValueT >::digits;
-
-    InputValueT input_buffered = 0;
-    InputValueT bits           = 0;
-    int         bit_count      = 0;
-    int         rlen           = 0;
-
-    enum encode_state { init, zeros, ones } state = init;
-    while( bit_count > 0 || input != last )
+    enum class encode_state
     {
-        if( bit_count < data_bits && input != last )
-        {
-            input_buffered = *input++;
-            bits          = bits | ( input_buffered << bit_count );
-            bit_count     = bit_count + data_bits;
-        }
+        init,
+        zeros,
+        ones
+    };
 
-        int count        = 0;
-        const auto zeros = std::min( detail::countr_zero( bits ), bit_count );
-        const auto ones  = std::min( detail::countr_one( bits ), bit_count );
+    OutputIt     output      = {};
+    DataT        buffer      = {};
+    int          buffer_size = {};
+    encode_state state       = encode_state::init;
+    int          rlen        = {};
 
+    void reset()
+    {
+        buffer      = {};
+        buffer_size = {};
+        state       = encode_state::init;
+        rlen        = {};
+    }
+
+    int push( const DataT data, const int zeros, const int ones )
+    {
         switch( state )
         {
+        default:
+            assert( !"should not be here!" );
+            return 0;
+
         case encode_state::init:
             if( zeros > detail::literal_size )
             {
-                count = zeros;
                 rlen  = zeros;
                 state = encode_state::zeros;
+
+                return zeros;
             }
-            else if( ones > detail::literal_size )
+            if( ones > detail::literal_size )
             {
-                count = ones;
                 rlen  = ones;
                 state = encode_state::ones;
+
+                return ones;
             }
-            else
-            {
-                count     = std::min( detail::literal_size, bit_count );
-                *output++ = detail::make_literal( bits );
-            }
-            break;
+
+            assert( rlen == 0 );
+            *output++ = detail::make_literal( data );
+
+            return detail::literal_size;
 
         case encode_state::zeros:
             if( zeros > 0 )
             {
-                count = std::min( detail::max_count - rlen, zeros );
-                rlen  = rlen + count;
+                const auto consumed = std::min( detail::max_count - rlen, zeros );
+                rlen                = rlen + consumed;
 
                 assert( rlen <= detail::max_count );
                 if( rlen == detail::max_count )
                 {
                     *output++ = detail::make_zeros( detail::max_count );
                     state     = encode_state::init;
+                    rlen      = 0;
                 }
+
+                return consumed;
             }
-            else
-            {
-                count     = 1;
-                *output++ = detail::make_zeros( rlen );
-                state     = encode_state::init;
-            }
-            break;
+
+            *output++ = detail::make_zeros( rlen );
+            state     = encode_state::init;
+            rlen      = 0;
+
+            return 1;
 
         case encode_state::ones:
             if( ones > 0 )
             {
-                count = std::min( detail::max_count - rlen, ones );
-                rlen  = rlen + count;
+                const auto consumed = std::min( detail::max_count - rlen, ones );
+                rlen                = rlen + consumed;
 
                 assert( rlen <= detail::max_count );
                 if( rlen == detail::max_count )
                 {
                     *output++ = detail::make_ones( detail::max_count );
                     state     = encode_state::init;
+                    rlen      = 0;
                 }
+
+                return consumed;
             }
-            else
-            {
-                count     = 1;
-                *output++ = detail::make_ones( rlen );
-                state     = encode_state::init;
-            }
+
+            *output++ = detail::make_ones( rlen );
+            state     = encode_state::init;
+            rlen      = 0;
+
+            return 1;
+        }
+    }
+
+public:
+    constexpr encoder() = default;
+
+    constexpr encoder( OutputIt output )
+        : output( output )
+    {}
+
+    constexpr encoder( encoder && other )
+        : output( std::move( other.output ) )
+        , buffer( other.buffer )
+        , buffer_size( other.buffer_size )
+        , state( other.state )
+        , rlen( other.rlen )
+    {}
+
+    ~encoder()
+    {
+        if( buffer_size > 0 || rlen > 0 )
+        {
+            flush();
+        }
+    }
+
+    constexpr OutputIt push( const DataT data )
+    {
+        constexpr auto buffer_capacity = std::numeric_limits< DataT >::digits;
+
+        auto shift_buffer = buffer;
+        auto bits         = buffer_size;
+
+        while( ( bits + buffer_capacity ) >= buffer_capacity )
+        {
+            shift_buffer = shift_buffer | data << static_cast< DataT >( bits );
+
+            const auto zeros    = detail::countr_zero( shift_buffer );
+            const auto ones     = detail::countr_one( shift_buffer );
+            const auto consumed = push( shift_buffer, zeros, ones );
+
+            shift_buffer = shift_buffer >> consumed;
+            bits         = bits - consumed;
         }
 
-        bit_count = bit_count - count;
-        if( bit_count == 0 )
+        if( bits >= 0 )
         {
-            bits = 0;
+            buffer = shift_buffer | data << static_cast< DataT >( bits );
         }
         else
         {
-            const int input_shift = bit_count - data_bits;
-
-            bits = bits >> count;
-            bits = bits | ( input_shift >= 0 ? input_buffered << input_shift : input_buffered >> -input_shift );
+            buffer = data >> static_cast< DataT >( -bits );
         }
-    }
+        buffer_size = bits + buffer_capacity;
 
-    switch( state )
-    {
-    case encode_state::init:
+        assert( buffer_size >= 0 );
+
         return output;
-
-    case encode_state::zeros:
-        *output = detail::make_zeros( rlen );
-        break;
-
-    case encode_state::ones:
-        *output = detail::make_ones( rlen );
     }
 
-    return ++output;
+    constexpr OutputIt flush()
+    {
+        while( buffer_size >= detail::literal_size ||
+               state != encode_state::init )
+        {
+            const auto zeros    = std::min( detail::countr_zero( buffer ), buffer_size );
+            const auto ones     = std::min( detail::countr_one( buffer ), buffer_size );
+            const auto consumed = push( buffer, zeros, ones );
+
+            buffer      = buffer >> static_cast< DataT >( consumed );
+            buffer_size = buffer_size - consumed;
+        }
+
+        switch( state )
+        {
+        case encode_state::init:
+            assert( buffer_size < detail::literal_size );
+            if( buffer_size > 0 )
+            {
+                *output = detail::make_literal( buffer );
+                break;
+            }
+            reset();
+            return output;
+
+        case encode_state::zeros:
+            assert( rlen > detail::literal_size );
+            *output = detail::make_zeros( rlen );
+            break;
+
+        case encode_state::ones:
+            assert( rlen > detail::literal_size );
+            *output = detail::make_ones( rlen );
+            break;
+        }
+
+        reset();
+        return ++output;
+    }
+};
+
+template< typename InputIt, typename OutputIt >
+constexpr auto encode( InputIt input, InputIt last, OutputIt output ) -> OutputIt
+{
+    using DataT = typename std::iterator_traits< InputIt >::value_type;
+
+    encoder< DataT, OutputIt > e( output );
+
+    while( input != last )
+    {
+        e.push( *input++ );
+    }
+
+    return e.flush();
 }
 
 template< typename InputIt, typename OutputIt, typename OutputValueT = typename std::iterator_traits< OutputIt >::value_type >
@@ -408,6 +501,11 @@ constexpr auto decode( InputIt input, InputIt last, OutputIt output ) -> OutputI
             *output++ = bits;
             bit_count = bit_count - data_bits;
             bits      = in >> ( detail::literal_size - bit_count );
+        }
+
+        if( bit_count == 0 )
+        {
+            bits = 0;
         }
     }
 
