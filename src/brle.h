@@ -237,7 +237,7 @@ class encoder
         rlen        = {};
     }
 
-    int push( const DataT data, const int zeros, const int ones )
+    constexpr int push( const DataT data, const int zeros, const int ones )
     {
         switch( state )
         {
@@ -344,7 +344,7 @@ public:
         auto shift_buffer = buffer;
         auto bits         = buffer_size;
 
-        while( ( bits + buffer_capacity ) >= buffer_capacity )
+        do
         {
             shift_buffer = shift_buffer | data << static_cast< DataT >( bits );
 
@@ -355,6 +355,7 @@ public:
             shift_buffer = shift_buffer >> consumed;
             bits         = bits - consumed;
         }
+        while( ( bits + buffer_capacity ) >= buffer_capacity );
 
         if( bits >= 0 )
         {
