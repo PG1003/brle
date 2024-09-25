@@ -214,7 +214,7 @@ constexpr int countr_one( T value )
 template< typename DataT, typename OutputIt >
 class encoder
 {
-    static_assert( std::is_unsigned< DataT >::value, "expected an unsigned input type" );
+    static_assert( std::is_unsigned< DataT >::value, "expected an unsigned data type" );
 
     enum class encode_state
     {
@@ -337,6 +337,16 @@ public:
         }
     }
 
+    constexpr void set_output( OutputIt output_ )
+    {
+        output = output_;
+    }
+
+    constexpr OutputIt get_output() const
+    {
+        return output;
+    }
+
     constexpr OutputIt push( const DataT data )
     {
         constexpr auto buffer_capacity = std::numeric_limits< DataT >::digits;
@@ -352,7 +362,9 @@ public:
             const auto ones     = detail::countr_one( shift_buffer );
             const auto consumed = push( shift_buffer, zeros, ones );
 
-            shift_buffer = shift_buffer >> consumed;
+            assert( consumed > 0 );
+
+            shift_buffer = shift_buffer >> static_cast< DataT >( consumed );
             bits         = bits - consumed;
         }
         while( ( bits + buffer_capacity ) >= buffer_capacity );
@@ -428,86 +440,260 @@ constexpr auto encode( InputIt input, InputIt last, OutputIt output ) -> OutputI
     return e.flush();
 }
 
+enum decoder_status
+{
+    success,        ///< Decoded successfuly; value is valid
+    done,           ///< No more data available to decode
+};
+
+template< typename DataT >
+struct decoder_result
+{
+    static_assert( std::is_unsigned< DataT >::value, "expected an unsigned data type" );
+
+    DataT          data   = {};
+    decoder_status status = decoder_status::done;
+
+    constexpr operator bool() const
+    {
+        return status == decoder_status::success;
+    }
+};
+
+template< typename DataT, typename InputIt >
+class decoder
+{
+    static_assert( std::is_unsigned< DataT >::value, "expected an unsigned data type" );
+    static_assert( std::is_same< typename std::iterator_traits< InputIt >::value_type, brle8 >::value,
+                   "expected an input iterator that returns brle8 like type when dereferenced" );
+
+    enum class decode_state
+    {
+        read,
+        zeros,
+        zeros_max,
+        ones,
+        ones_max
+    };
+
+    InputIt      input       = {};
+    InputIt      last        = {};
+    DataT        buffer      = {};
+    int          buffer_size = {};
+    decode_state state       = decode_state::read;
+    int          rlen        = {};
+
+public:
+    constexpr decoder() = default;
+
+    constexpr decoder( InputIt input, InputIt last )
+        : input( input )
+        , last( last )
+    {}
+
+    constexpr decoder( decoder && other )
+        : input( std::move( other.input ) )
+        , last( std::move( other.last ) )
+        , buffer( other.buffer )
+        , buffer_size( other.buffer_size )
+        , state( other.state )
+        , rlen( other.rlen )
+    {}
+
+    constexpr void set_input( InputIt input_, InputIt last_ )
+    {
+        input = input_;
+        last  = last_;
+    }
+
+    constexpr InputIt get_input() const
+    {
+        return input;
+    }
+
+    constexpr decoder_result< DataT > pull()
+    {
+        constexpr auto buffer_capacity = std::numeric_limits< DataT >::digits;
+        constexpr auto base_mask       = std::numeric_limits< DataT >::max();
+
+        while( true )
+        {
+            switch( state )
+            {
+            case decode_state::read:
+                if( input == last )
+                {
+                    return { {}, decoder_status::done };
+                }
+                else
+                {
+                    const auto in   = *input++;
+                    switch( detail::brle8_mode( in ) )
+                    {
+                    default:
+                    {
+                        buffer = buffer | static_cast< DataT >( in ) << static_cast< DataT >( buffer_size );
+
+                        const auto produced = buffer_size + detail::literal_size;
+                        if( produced >= buffer_capacity )
+                        {
+                            const auto data = buffer;
+                            const auto shift = buffer_capacity - buffer_size;
+
+                            buffer      = static_cast< DataT >( in ) >> static_cast< DataT >( shift );
+                            buffer_size = detail::literal_size - shift;
+
+                            return { data, decoder_status::success };
+                        }
+                        buffer_size = produced;
+                        continue;
+                    }
+                    case detail::mode::zeros:
+                        rlen  = detail::count( in );
+                        state = ( rlen < detail::max_count ) ? decode_state::zeros : decode_state::zeros_max;
+                        continue;
+
+                    case detail::mode::ones:
+                        rlen  = detail::count( in );
+                        state = ( rlen < detail::max_count ) ? decode_state::ones : decode_state::ones_max;
+                        continue;
+                    }
+                }
+
+            case decode_state::zeros:
+            {
+                const auto free             = buffer_capacity - buffer_size;
+                const auto rlen_include_one = rlen + 1;
+
+                if( rlen_include_one > free )
+                {
+                    const auto data = buffer;
+
+                    rlen        = rlen - free;
+                    buffer      = {};
+                    buffer_size = {};
+
+                    return { data, decoder_status::success };
+                }
+                buffer = buffer | static_cast< DataT >( 1 ) << static_cast< DataT >( rlen + buffer_size );
+                state  = decode_state::read;
+                if( rlen_include_one == free )
+                {
+                    const auto data = buffer;
+
+                    buffer      = {};
+                    buffer_size = {};
+
+                    return { data, decoder_status::success };
+                }
+                buffer_size = buffer_size + rlen_include_one;
+                continue;
+            }
+            case decode_state::zeros_max:
+            {
+                const auto free = buffer_capacity - buffer_size;
+
+                if( rlen > free )
+                {
+                    const auto data = buffer;
+
+                    rlen        = rlen - free;
+                    buffer      = {};
+                    buffer_size = {};
+
+                    return { data, decoder_status::success };
+                }
+                state = decode_state::read;
+                if( rlen == free )
+                {
+                    const auto data = buffer;
+
+                    buffer      = {};
+                    buffer_size = {};
+
+                    return { data, decoder_status::success };
+                }
+                buffer_size = buffer_size + rlen;
+                continue;
+            }
+            case decode_state::ones:
+            {
+                const auto free              = buffer_capacity - buffer_size;
+                const auto rlen_include_zero = rlen + 1;
+
+                buffer = buffer | base_mask << static_cast< DataT >( buffer_size );
+                if( rlen_include_zero > free )
+                {
+                    const auto data = buffer;
+
+                    rlen        = rlen - free;
+                    buffer      = {};
+                    buffer_size = {};
+
+                    return { data, decoder_status::success };
+                }
+
+                const auto mask = ~( base_mask << static_cast< DataT >( buffer_size + rlen ) );
+
+                buffer = buffer & mask;
+                state  = decode_state::read;
+                if( rlen_include_zero == free )
+                {
+                    const auto data = buffer;
+
+                    buffer      = {};
+                    buffer_size = {};
+
+                    return { data, decoder_status::success };
+                }
+                buffer_size = buffer_size + rlen_include_zero;
+                continue;
+            }
+            case decode_state::ones_max:
+            {
+                const auto free = buffer_capacity - buffer_size;
+
+                buffer = buffer | base_mask << static_cast< DataT >( buffer_size );
+                if( rlen > free )
+                {
+                    rlen        = rlen - free;
+                    buffer_size = {};
+
+                    return { buffer, decoder_status::success };
+                }
+
+                const auto size = buffer_size + rlen;
+
+                state  = decode_state::read;
+                if( size == buffer_capacity )
+                {
+                    const auto data = buffer;
+
+                    buffer      = {};
+                    buffer_size = {};
+
+                    return { data, decoder_status::success };
+                }
+
+                const auto mask = ~( base_mask << static_cast< DataT >( size ) );
+
+                buffer      = buffer & mask;
+                buffer_size = size;
+                continue;
+            }
+            }
+        }
+    }
+};
+
 template< typename InputIt, typename OutputIt, typename OutputValueT = typename std::iterator_traits< OutputIt >::value_type >
 constexpr auto decode( InputIt input, InputIt last, OutputIt output ) -> OutputIt
 {
-    static_assert( std::is_same< typename std::iterator_traits< InputIt >::value_type, brle8 >::value,
-                   "expected an input iterator that returns brle8 like type when dereferenced" );
-    static_assert( std::is_unsigned< OutputValueT >::value,
-                   "expected an unsigned value type as output" );
+    decoder< OutputValueT, InputIt > d( input, last );
 
-    constexpr int          data_bits = std::numeric_limits< OutputValueT >::digits;
-    constexpr OutputValueT data_mask = std::numeric_limits< OutputValueT >::max();
-
-    OutputValueT bits      = 0;
-    int          bit_count = 0;
-
-    while( input != last )
+    for( auto result = d.pull() ; result ; result = d.pull() )
     {
-        const auto in   = *input++;
-        const auto mode = detail::brle8_mode( in );
-        if( mode == detail::mode::zeros )
-        {
-            const auto count = detail::count( in );
-
-            bit_count = bit_count + count;
-            for( ; bit_count >= data_bits ; bit_count -= data_bits )
-            {
-                *output++ = bits;
-                bits      = 0;
-            }
-
-            if( count < detail::max_count )
-            {
-                constexpr OutputValueT one = { 1 };
-
-                bits      = bits | ( one << bit_count );
-                bit_count = bit_count + 1;
-            }
-        }
-        else if( mode == detail::mode::ones )
-        {
-            const auto count = detail::count( in );
-
-            bits      = bits | ( data_mask << bit_count );
-            bit_count = bit_count + count;
-            for( ; bit_count >= data_bits ; bit_count -= data_bits )
-            {
-                *output++ = bits;
-                bits      = data_mask;
-            }
-
-            if( bit_count > 0 )
-            {
-                bits = bits & ~( data_mask << bit_count );  // Clear remaining bits
-            }
-            else
-            {
-                bits = 0;
-            }
-
-            if( count < detail::max_count )
-            {
-                bit_count = bit_count + 1;
-            }
-        }
-        else    // detail::mode::literal
-        {
-            bits      = bits | static_cast< OutputValueT >( in ) << bit_count;
-            bit_count = bit_count + detail::literal_size;
-        }
-
-        if( bit_count >= data_bits )
-        {
-            *output++ = bits;
-            bit_count = bit_count - data_bits;
-            bits      = in >> ( detail::literal_size - bit_count );
-        }
-
-        if( bit_count == 0 )
-        {
-            bits = 0;
-        }
+        *output++ = result.data;
     }
 
     return output;

@@ -21,8 +21,8 @@ static bool report_failed_check( const char* const file, const int line, const c
 using namespace pg::brle;
 
 
-template< typename T, size_t N >
-static bool roundtrip( const T ( & in )[ N ], size_t init = T() )
+template< typename T, size_t N, typename U = size_t >
+static bool roundtrip( const T ( & in )[ N ], U init = U() )
 {
     constexpr int len                = N * std::numeric_limits< T >::digits;
     constexpr int encode_buffer_size = ( 2 * len ) / 8; // Larger buffer required than the source size in case the result contains only literals.
@@ -52,6 +52,7 @@ static void encode_decode_uint8()
     const uint8_t literalszeros[] = { 0x55, 0x00 };
     const uint8_t literalsones[]  = { 0xAA, 0xFF };
     const uint8_t mixed[]         = { 0xAA, 0xAA, 0xAA, 0xAA, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0xFF, 0xAA, 0x00 };
+    const uint8_t weird[]         = { 0x00, 0x00, 0x80, 0x40 };
 
     assert_true( roundtrip( zeros, 0xFFu ) );
     assert_true( roundtrip( ones ) );
@@ -63,6 +64,7 @@ static void encode_decode_uint8()
     assert_true( roundtrip( literalszeros ) );
     assert_true( roundtrip( literalsones ) );
     assert_true( roundtrip( mixed ) );
+    assert_true( roundtrip( weird ) );
 }
 
 static void encode_decode_uint16()
@@ -92,16 +94,18 @@ static void encode_decode_uint16()
 
 static void encode_decode_uint32()
 {
-    const uint32_t zeros[]         = { 0x00000000, 0x00000000, 0x00000000, 0x00000000 };
-    const uint32_t ones[]          = { 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF };
-    const uint32_t literals[]      = { 0xAAAAAAAA, 0xAAAAAAAA, 0xAAAAAAAA, 0xAAAAAAAA };
-    const uint32_t zerosones[]     = { 0x00FF00FF };
-    const uint32_t zerosliterals[] = { 0x00AA00AA };
-    const uint32_t oneszeros[]     = { 0xFF00FF00 };
-    const uint32_t onesliterals[]  = { 0xFF55FF55 };
-    const uint32_t literalszeros[] = { 0x55005500 };
-    const uint32_t literalsones[]  = { 0xAAFFAAFF };
-    const uint32_t mixed[]         = { 0xAAAAAAAA, 0x00000000, 0xFFFFFFFF, 0x00FFAA00 };
+    const uint32_t zeros[]             = { 0x00000000, 0x00000000, 0x00000000, 0x00000000 };
+    const uint32_t ones[]              = { 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF };
+    const uint32_t literals[]          = { 0xAAAAAAAA, 0xAAAAAAAA, 0xAAAAAAAA, 0xAAAAAAAA };
+    const uint32_t zerosones[]         = { 0x00FF00FF };
+    const uint32_t zerosliterals[]     = { 0x00AA00AA };
+    const uint32_t oneszeros[]         = { 0xFF00FF00 };
+    const uint32_t onesliterals[]      = { 0xFF55FF55 };
+    const uint32_t literalszeros[]     = { 0x55005500 };
+    const uint32_t literalsones[]      = { 0xAAFFAAFF };
+    const uint32_t mixed[]             = { 0xAAAAAAAA, 0x00000000, 0xFFFFFFFF, 0x00FFAA00 };
+    const uint32_t max_literal_ones[]  = { 0xFF000000, 0xFFFFFFFF, 0xFFFFFFFF, 0x00000000 };
+    const uint32_t max_literal_zeros[] = { 0x00FFFFFF, 0x00000000, 0x00000000, 0xFFFFFFFF };
 
     assert_true( roundtrip( zeros, 0xFFFFFFFFu ) );
     assert_true( roundtrip( ones ) );
@@ -113,6 +117,8 @@ static void encode_decode_uint32()
     assert_true( roundtrip( literalszeros ) );
     assert_true( roundtrip( literalsones ) );
     assert_true( roundtrip( mixed ) );
+    assert_true( roundtrip( max_literal_ones ) );
+    assert_true( roundtrip( max_literal_zeros ) );
 }
 
 static void encode_decode_uint64()
