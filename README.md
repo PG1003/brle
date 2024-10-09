@@ -13,8 +13,7 @@ However due to simplicity of RLE the compression may not be as good as achieved 
   * The encoder and decoder do not depend on previously processed data.
   * Fixed size RLE [data blocks](#Block-format).
 * Compress and expand data in a single pass.
-* No buffering of input data or output data.
-* Entirely `constexpr`.
+* Minimal buffering of input data or output data.
 
 ## Requirements
 
@@ -65,7 +64,7 @@ assert( std::distance( data, end ) == 8 );
 ### Decoding using output iterators
 
 The iterator traits used in the implementation of `pg::brle::decode` does not provide information about the underlaying data structure for output iterators such as returned by the `std::back_inserter` function.
-In this rare case you need explicit provide all the template parameters.
+In this case you need explicit provide all the template parameters.
 
 ```c++
 const pg::brle::brle8   rle[ 3 ] = { 0xCC, 0x9C, 0x2A };
@@ -189,7 +188,7 @@ A block does not depend on other blocks.
 Literal blocks are marked by a `0` for most significant bit.
 The remaining 7 bits packs the uncompressed literal data.
 
-A literal block is used when are less than 8 successive bits of the same value (zero or one).
+A literal block is used when there are less than 8 successive bits of the same value (zero or one).
 Using literal blocks for these cases reduces the overhead by avoiding many blocks for very short sequences of ones and zeros.
 However there is still an inevitable overhead added for literal data.
 This results into output data which is `8 / 7 = 114.3%` the size of the original data.
